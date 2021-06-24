@@ -1,7 +1,7 @@
 import math
 import cv2 as cv
 import numpy as np
-import hand_detection_module as hd
+import mediapipe as mp
 import time
 from ctypes import POINTER ,cast
 from comtypes import CLSCTX_ALL
@@ -14,7 +14,6 @@ cap.set(4,height)
 cap.set(10,150)
 current_time=0
 post_time=0
-detector=hd.detect_hand(detection=0.7)
 
 devices=AudioUtilities.GetSpeakers()
 interface=devices.Activate(
@@ -31,6 +30,43 @@ maxVol=volRange[1]
 volBar=400
 volPercentage=0
 
+
+class detect_hand:
+    def __init__(self,mode=False,maxhands=2,detection=0.5,tracking=0.5):
+        self.mode=mode
+        self.maxhands=maxhands
+        self.detection=detection
+        self.tracking=tracking
+
+        self.hand = mp.solutions.hands
+        self.hands = self.hand.Hands(False,self.maxhands,self.detection,self.tracking)
+        self.draw = mp.solutions.drawing_utils
+
+    def show_hand(self,frame,draw=True):
+        self.frame_rgb=cv.cvtColor(frame,cv.COLOR_BGR2RGB)
+        self.result=self.hands.process(self.frame_rgb)
+        self.lmark=self.result.multi_hand_landmarks
+        if self.lmark:
+            for pointer in self.lmark:
+                if draw:
+                    self.draw.draw_landmarks(frame,pointer,self.hand.HAND_CONNECTIONS)
+        return frame
+    def getposition(self,frame,handno=0,draw=True):
+        lmlist=[]
+        if self.lmark:
+
+            pointer=self.lmark[handno]
+
+            for id, lm in enumerate(pointer.landmark):
+                    h, w, c = frame.shape
+                    cx, cy = int(lm.x * w), int(lm.y * h)
+                    lmlist.append([id,cx,cy])
+                    if draw:
+                        self.draw.draw_landmarks(frame, pointer, self.hand.HAND_CONNECTIONS)
+        return lmlist
+    
+
+detector=detect_hand(detection=0.7)
 
 while True:
 
